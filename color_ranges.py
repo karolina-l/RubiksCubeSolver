@@ -10,10 +10,10 @@ red_upper_2 = np.array([179,255,255 ])
 
 # Set range for green color
 green_lower = np.array([32,77,77])
-green_upper = np.array([79,255,255 ])
+green_upper = np.array([85,255,255 ])
 
 # Set range for blue color
-blue_lower = np.array([80,77,77])
+blue_lower = np.array([86,77,77])
 blue_upper = np.array([130,255,255 ])
 
 # Set range for yellow color
