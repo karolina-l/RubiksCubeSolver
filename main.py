@@ -142,51 +142,6 @@ while (1):
                 cv2.waitKey(0)
         cv2.waitKey(0)
 
-
-        # Convert the imageFrame in
-        # BGR(RGB color space) to
-        # HSV(hue-saturation-value)
-        # color space
-        # path = f'./Images/slice_{s}.png'
-        # slice_img = cv2.imread(path)
-        # hsvFrame = cv2.cvtColor(roi_img, cv2.COLOR_BGR2HSV)
-
-        # # Morphological Transform, Dilation
-        # red_mask, res_red = DilationAndMask(red_mask, roi_img)
-        # green_mask, res_green = DilationAndMask(green_mask, roi_img)
-        # blue_mask, res_blue = DilationAndMask(blue_mask, roi_img)
-        # yellow_mask, res_yellow = DilationAndMask(yellow_mask, roi_img)
-        # white_mask, res_white = DilationAndMask(white_mask, roi_img)
-        # orange_mask, res_orange = DilationAndMask(orange_mask, roi_img)
-        #
-        # # Creating contours to track colors
-        # Contour(red_mask, "Red", 255, 0, 0, roi_img)
-        # Contour(green_mask, "Green", 0, 255, 0, roi_img)
-        # Contour(blue_mask, "Blue", 0, 0, 255, roi_img)
-        # Contour(yellow_mask, "Yellow", 255, 255, 0, roi_img)
-        # Contour(white_mask, "White", 255, 255, 255, roi_img)
-        # Contour(orange_mask, "Orange", 255, 128, 0, roi_img)
-        #
-        # cv2.imshow("Rubiks Cube Solver", roi_img)
-        # cv2.waitKey(0)
-
-    # Program Termination
-    # cv2.imshow("Multiple Color Detection in Real-Time", imageFrame)
-
-    # path = './Images/roi_0.png'
-    # roi_img = cv2.imread(path)
-    # cv2.imshow("Rubiks Cube Solver", roi_img)
-    # height, width, _ = roi_img.shape
-    # print(f'{height}, {width}')
-    #
-    # for a in range(3):
-    #    for b in range(3):
-    #        print(f'{a}, {b}')
-    #        slice = roi_img[int(width/3)*b:int(height/3)*(b+1), int(width/3)*a:int(height/3)*(a+1)]
-    #        captured_img = f"./Images/slice_{a}{b}.png"
-    #        cv2.imwrite(captured_img, slice)
-    # cv2.waitKey(0)
-
     if cv2.waitKey(1) == 27:
         webcam.release()
         cv2.destroyAllWindows()
