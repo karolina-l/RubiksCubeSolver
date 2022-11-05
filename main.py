@@ -3,6 +3,16 @@ import cv2
 import color_ranges as cr
 import copy
 from enum import Enum
+import json
+import os.path
+
+import solver
+from cube import Cube
+# from solver import IDA_star, build_heuristic
+
+MAX_MOVES = 5
+NEW_HEURISTICS = False
+HEURISTIC_FILE = 'heuristic.json'
 
 # Capturing video through webcam
 webcam = cv2.VideoCapture(0)
@@ -37,7 +47,6 @@ def Contour(color_mask, color_name, color_r, color_g, color_b, frame):
             cv2.putText(frame, f"{color_name} Color", (x, y),
                         cv2.FONT_HERSHEY_SIMPLEX, 1.0,
                         (color_b, color_g, color_r))
-    print(f"{color_name}: {sum(areas)}")
     return color_name, sum(areas)
 
 
@@ -51,22 +60,23 @@ grid_thickness = 2
 while (1):
 
     # Capturing 6 images from camera
-    while (img_ctr < 6):
-        ret, imageFrame = webcam.read()
-        img_cpy = copy.copy(imageFrame)
-        img_cpy = cv2.rectangle(img_cpy, grid_start, grid_end, grid_color, grid_thickness)
-        if not ret:
-            print("failed to grab frame")
-            break
-        cv2.imshow("Rubiks Cube Solver", img_cpy)
-        action = cv2.waitKey(1)
-        if action%256 == 32:
-            captured_img = f"./Images/cube_{img_ctr}.png"
-            cv2.imwrite(captured_img, imageFrame)
-            print(f"{captured_img} written!")
-            img_ctr += 1
+    # while (img_ctr < 6):
+    #     ret, imageFrame = webcam.read()
+    #     img_cpy = copy.copy(imageFrame)
+    #     img_cpy = cv2.rectangle(img_cpy, grid_start, grid_end, grid_color, grid_thickness)
+    #     if not ret:
+    #         print("failed to grab frame")
+    #         break
+    #     cv2.imshow("Rubiks Cube Solver", img_cpy)
+    #     action = cv2.waitKey(1)
+    #     if action%256 == 32:
+    #         captured_img = f"./Images/cube_{img_ctr}.png"
+    #         cv2.imwrite(captured_img, imageFrame)
+    #         print(f"{captured_img} written!")
+    #         img_ctr += 1
 
     print("idziemy dalej")
+    cube_faces = [None] * 6
     for i in range(6):
         path = f'./Images/cube_{i}.png'
         cube_img = cv2.imread(path)
@@ -81,15 +91,14 @@ while (1):
 
         cv2.imshow("Rubiks Cube Solver", roi_img)
         height, width, _ = roi_img.shape
-        print(f'{height}, {width}')
 
         # getting singular tiles
         slice_ctr = 0
+        face = []
         for a in range(3):
             for b in range(3):
-                print(f'{a}, {b}')
-                slice = roi_img[int(width / 3) * b:int(height / 3) * (b + 1),
-                        int(width / 3) * a:int(height / 3) * (a + 1)]
+                slice = roi_img[int(width / 3) * a:int(height / 3) * (a + 1),
+                        int(width / 3) * b:int(height / 3) * (b + 1)]
                 captured_img = f"./Images/slice_{slice_ctr}.png" # będzie do usunięcia
                 slice_ctr += 1 # będzie do usunięcia
                 cv2.imwrite(captured_img, slice) # będzie do usunięcia
@@ -115,18 +124,17 @@ while (1):
                 orange_mask, res_orange = DilationAndMask(orange_mask, slice)
 
                 # Creating contours to track colors
-                r1_col, r1_area = Contour(red_mask_1, "Red", 255, 0, 0, slice)
-                r2_col, r2_area = Contour(red_mask_2, "Red", 255, 0, 0, slice)
-                g_col, g_area = Contour(green_mask, "Green", 0, 255, 0, slice)
-                b_col, b_area = Contour(blue_mask, "Blue", 0, 0, 255, slice)
-                y_col, y_area = Contour(yellow_mask, "Yellow", 255, 255, 0, slice)
-                w_col, w_area = Contour(white_mask, "White", 255, 255, 255, slice)
-                o_col, o_area = Contour(orange_mask, "Orange", 255, 128, 0, slice)
+                r1_col, r1_area = Contour(red_mask_1, "r", 255, 0, 0, slice)
+                r2_col, r2_area = Contour(red_mask_2, "r", 255, 0, 0, slice)
+                g_col, g_area = Contour(green_mask, "g", 0, 255, 0, slice)
+                b_col, b_area = Contour(blue_mask, "b", 0, 0, 255, slice)
+                y_col, y_area = Contour(yellow_mask, "y", 255, 255, 0, slice)
+                w_col, w_area = Contour(white_mask, "w", 255, 255, 255, slice)
+                o_col, o_area = Contour(orange_mask, "o", 255, 128, 0, slice)
 
-                r_col = r1_col + r2_col
                 r_area = r1_area + r2_area
                 col_areas = list()
-                col_areas.append({'color': r_col, 'area': r_area})
+                col_areas.append({'color': r1_col, 'area': r_area})
                 col_areas.append({'color': g_col, 'area': g_area})
                 col_areas.append({'color': b_col, 'area': b_area})
                 col_areas.append({'color': y_col, 'area': y_area})
@@ -136,11 +144,69 @@ while (1):
                 detected = max(col_areas, key=lambda x:x['area'])
 
                 print(f"this tile is {detected['color']}")
+                face.append(detected['color'])
 
                 cv2.destroyWindow("Rubiks Cube Solver")
                 cv2.imshow("Rubiks Cube Solver", slice)
-                cv2.waitKey(0)
         cv2.waitKey(0)
+
+            #MOZLIWOSC EDYCJI KOLORÓW I SPRAWDZENIE ILOSCI
+        if face[4] == 'w':
+            cube_faces[0] = face
+        elif face[4] == 'g':
+            cube_faces[1] = face
+        elif face[4] == 'r':
+            cube_faces[2] = face
+        elif face[4] == 'b':
+            cube_faces[3] = face
+        elif face[4] == 'o':
+            cube_faces[4] = face
+        elif face[4] == 'y':
+            cube_faces[5] = face
+
+    cube_str = ''.join([i for r in cube_faces for s in r for i in s])
+    print(cube_str)
+
+    #--------------------------------------------
+    cube = Cube(n=3, state=cube_str)
+    cube.show()
+
+    # if os.path.exists(HEURISTIC_FILE):
+    #     with open(HEURISTIC_FILE) as f:
+    #         h_db = json.load(f)
+    # else:
+    h_db = None
+
+    if h_db is None or NEW_HEURISTICS is True:
+        actions = [(r, n, d) for r in ['h', 'v', 's'] for d in [0, 1] for n in range(cube.n)]
+        h_db = solver.IDA_star.build_heuristic(
+            cube.stringify(),
+            actions,
+            max_moves=MAX_MOVES,
+            heuristic=h_db
+        )
+
+        with open(HEURISTIC_FILE, 'w', encoding='utf-8') as f:
+            json.dump(
+                h_db,
+                f,
+                ensure_ascii=False,
+                indent=4
+            )
+    solver = solver.IDA_star(h_db)
+    moves = solver.run(cube.stringify())
+    print(moves)
+    cv2.waitKey(0)
+
+    for m in moves:
+        if m[0] == 'h':
+            cube.horizontal_twist(m[1], m[2])
+        elif m[0] == 'v':
+            cube.vertical_twist(m[1], m[2])
+        elif m[0] == 's':
+            cube.side_twist(m[1], m[2])
+    cube.show()
+    cv2.waitKey(0)
 
     if cv2.waitKey(1) == 27:
         webcam.release()
