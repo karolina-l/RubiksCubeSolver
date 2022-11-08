@@ -41,29 +41,26 @@ def Contour(color_mask, color_name, color_r, color_g, color_b, frame):
     return color_name, sum(areas)
 
 
+def showUD(face):
+    spacing = 18 * ' '
+    for i in range(0,7,3):
+        print(spacing + str(face[i:i+3]))
+
 def show(cube):
-    spacing = f'{" " * 3}'
-    c1 = []
-    c2 = []
-    c3 = []
-    c1.append(cube[0:3])
-    c1.append(cube[3:6])
-    c1.append(cube[6:9])
-    for i in range(9, 16, 3):
-        c2.append(''.join(str(cube[i:i + 3])))
-        c2.append(''.join(str(cube[9 + i:9 + i + 3])))
-        c2.append(''.join(str(cube[18 + i:18 + i + 3])))
-        c2.append(''.join(str(cube[27 + i:27 + i + 3])))
-    c3.append(cube[45:48])
-    c3.append(cube[48:51])
-    c3.append(cube[51:54])
-
-    c2 = ''.join(c for c in c2)
-
-    l1 = '\n'.join(spacing + c for c in c1)
-    l2 = '\n'.join(str(c2[i:i + 12]) for i in range(0, 25, 12))
-    l3 = '\n'.join(spacing + c for c in c3)
-    print(f'{l1}\n{l2}\n{l3}')
+    cube_duplicate = 6 * [None]
+    cube_duplicate[0] = cube[0]
+    cube_duplicate[1] = cube[4]
+    cube_duplicate[2] = cube[2]
+    cube_duplicate[3] = cube[1]
+    cube_duplicate[4] = cube[5]
+    cube_duplicate[5] = cube[3]
+    showUD(cube_duplicate[0])
+    for row in range(0,7,3):
+        long_row = []
+        for side in range(1,5):
+            long_row.append(cube_duplicate[side][row:row+3])
+        print(long_row)
+    showUD(cube_duplicate[5])
 
 
 img_ctr = 0
@@ -167,7 +164,6 @@ while (1):
                 cv2.imshow("Rubiks Cube Solver", slice)
         cv2.waitKey(0)
 
-        # MOZLIWOSC EDYCJI KOLORÓW I SPRAWDZENIE ILOSCI
         if face[4] == 'y': # yellow
             cube_faces[0] = face
         elif face[4] == 'g': # green
@@ -183,51 +179,55 @@ while (1):
 
     # kolejność do wyświetlania w cube_faces: 0,4,2,1,5,3
 
-    # cube_str = ''.join([i for r in cube_faces for s in r for i in s])
+    show(cube_faces)
 
-    show(cube_str)
+    temp = [str(i) for i in range(9)]
+    temp_cube = [copy.copy(temp), copy.copy(temp), copy.copy(temp), copy.copy(temp), copy.copy(temp), copy.copy(temp)]
+    color_list = ['y', 'g', 'r', 'w', 'b', 'o']
+    for i in range(6):
+        temp_cube[i][4] = color_list[i]
 
     correct = input('czy kolory się zgadzają? y/n')
     while correct == 'n':
-        show('0123y56780123g56780123r56780123w56780123b56780123o5678')
+        show(temp_cube)
         side, no = input('podaj kolor ścianki i numer błędnego kafelka:')
         new_tile = input('podaj poprawny kolor (b/g/y/w/r/o)')
         if side == 'y':
-            add = 0
+            cube_faces[0][int(no)] = new_tile
         elif side == 'g':
-            add = 9
+            cube_faces[1][int(no)] = new_tile
         elif side == 'r':
-            add = 18
+            cube_faces[2][int(no)] = new_tile
         elif side == 'w':
-            add = 27
+            cube_faces[3][int(no)] = new_tile
         elif side == 'b':
-            add = 36
+            cube_faces[4][int(no)] = new_tile
         elif side == 'o':
-            add = 45
+            cube_faces[5][int(no)] = new_tile
 
-        cube_list = []
-        cube_list[:0] = cube_str
-        cube_list[add+int(no)] = new_tile
-        cube_str = ''.join(cube_list)
-        show(cube_str)
+        show(cube_faces)
         correct = input('czy teraz jest poprawnie? y/n')
 
-    cube_list = []
-    cube_list[:0] = cube_str
-    if cube_list[4] == 'y':  # yellow
-        x = 'U'
-    elif x == 'g':  # green
-        x = 'R'
-    elif x == 'r':  # red
-        x = 'F'
-    elif x == 'w':  # white
-        x = 'D'
-    elif x == 'b':  # blue
-        x = 'L'
-    elif x == 'o':  # orange
-        x = 'B'
+    for i in range(6):
+        for j in range(9):
+            if cube_faces[i][j] == 'y':  # yellow
+                cube_faces[i][j] = 'U'
+            elif cube_faces[i][j] == 'g':  # green
+                cube_faces[i][j] = 'R'
+            elif cube_faces[i][j] == 'r':  # red
+                cube_faces[i][j] = 'F'
+            elif cube_faces[i][j] == 'w':  # white
+                cube_faces[i][j] = 'D'
+            elif cube_faces[i][j] == 'b':  # blue
+                cube_faces[i][j] = 'L'
+            elif cube_faces[i][j] == 'o':  # orange
+                cube_faces[i][j] = 'B'
 
-    cube_str = ''.join(cube_list)
+    cube_aos = [None] * 6
+    for i in range(6):
+        cube_aos[i] = ''.join(cube_faces[i])
+
+    cube_str = ''.join(cube_aos)
 
     print(f'solution: {sv.solve(cube_str)}')
     cv2.waitKey(0)
