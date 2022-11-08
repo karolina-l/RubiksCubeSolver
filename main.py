@@ -2,6 +2,7 @@ import numpy as np
 import cv2
 import color_ranges as cr
 import copy
+import twophase.solver as sv
 from enum import Enum
 
 # Capturing video through webcam
@@ -37,8 +38,32 @@ def Contour(color_mask, color_name, color_r, color_g, color_b, frame):
             cv2.putText(frame, f"{color_name} Color", (x, y),
                         cv2.FONT_HERSHEY_SIMPLEX, 1.0,
                         (color_b, color_g, color_r))
-    print(f"{color_name}: {sum(areas)}")
     return color_name, sum(areas)
+
+
+def show(cube):
+    spacing = f'{" " * 3}'
+    c1 = []
+    c2 = []
+    c3 = []
+    c1.append(cube[0:3])
+    c1.append(cube[3:6])
+    c1.append(cube[6:9])
+    for i in range(9, 16, 3):
+        c2.append(''.join(str(cube[i:i + 3])))
+        c2.append(''.join(str(cube[9 + i:9 + i + 3])))
+        c2.append(''.join(str(cube[18 + i:18 + i + 3])))
+        c2.append(''.join(str(cube[27 + i:27 + i + 3])))
+    c3.append(cube[45:48])
+    c3.append(cube[48:51])
+    c3.append(cube[51:54])
+
+    c2 = ''.join(c for c in c2)
+
+    l1 = '\n'.join(spacing + c for c in c1)
+    l2 = '\n'.join(str(c2[i:i + 12]) for i in range(0, 25, 12))
+    l3 = '\n'.join(spacing + c for c in c3)
+    print(f'{l1}\n{l2}\n{l3}')
 
 
 img_ctr = 0
@@ -67,6 +92,7 @@ while (1):
             img_ctr += 1
 
     print("idziemy dalej")
+    cube_faces = [None] * 6
     for i in range(6):
         path = f'./Images/cube_{i}.png'
         cube_img = cv2.imread(path)
@@ -81,15 +107,14 @@ while (1):
 
         cv2.imshow("Rubiks Cube Solver", roi_img)
         height, width, _ = roi_img.shape
-        print(f'{height}, {width}')
 
         # getting singular tiles
         slice_ctr = 0
+        face = []
         for a in range(3):
             for b in range(3):
-                print(f'{a}, {b}')
-                slice = roi_img[int(width / 3) * b:int(height / 3) * (b + 1),
-                        int(width / 3) * a:int(height / 3) * (a + 1)]
+                slice = roi_img[int(width / 3) * a:int(height / 3) * (a + 1),
+                        int(width / 3) * b:int(height / 3) * (b + 1)]
                 captured_img = f"./Images/slice_{slice_ctr}.png" # będzie do usunięcia
                 slice_ctr += 1 # będzie do usunięcia
                 cv2.imwrite(captured_img, slice) # będzie do usunięcia
@@ -115,15 +140,15 @@ while (1):
                 orange_mask, res_orange = DilationAndMask(orange_mask, slice)
 
                 # Creating contours to track colors
-                r1_col, r1_area = Contour(red_mask_1, "Red", 255, 0, 0, slice)
-                r2_col, r2_area = Contour(red_mask_2, "Red", 255, 0, 0, slice)
-                g_col, g_area = Contour(green_mask, "Green", 0, 255, 0, slice)
-                b_col, b_area = Contour(blue_mask, "Blue", 0, 0, 255, slice)
-                y_col, y_area = Contour(yellow_mask, "Yellow", 255, 255, 0, slice)
-                w_col, w_area = Contour(white_mask, "White", 255, 255, 255, slice)
-                o_col, o_area = Contour(orange_mask, "Orange", 255, 128, 0, slice)
+                r1_col, r1_area = Contour(red_mask_1, "r", 255, 0, 0, slice) # red F
+                r2_col, r2_area = Contour(red_mask_2, "r", 255, 0, 0, slice) # red F
+                g_col, g_area = Contour(green_mask, "g", 0, 255, 0, slice) # green R
+                b_col, b_area = Contour(blue_mask, "b", 0, 0, 255, slice) # blue L
+                y_col, y_area = Contour(yellow_mask, "y", 255, 255, 0, slice) # yellow U
+                w_col, w_area = Contour(white_mask, "w", 255, 255, 255, slice) # white D
+                o_col, o_area = Contour(orange_mask, "o", 255, 128, 0, slice) # orange B
 
-                r_col = r1_col + r2_col
+                r_col = r1_col
                 r_area = r1_area + r2_area
                 col_areas = list()
                 col_areas.append({'color': r_col, 'area': r_area})
@@ -136,11 +161,76 @@ while (1):
                 detected = max(col_areas, key=lambda x:x['area'])
 
                 print(f"this tile is {detected['color']}")
+                face.append(detected['color'])
 
                 cv2.destroyWindow("Rubiks Cube Solver")
                 cv2.imshow("Rubiks Cube Solver", slice)
-                cv2.waitKey(0)
         cv2.waitKey(0)
+
+        # MOZLIWOSC EDYCJI KOLORÓW I SPRAWDZENIE ILOSCI
+        if face[4] == 'y': # yellow
+            cube_faces[0] = face
+        elif face[4] == 'g': # green
+            cube_faces[1] = face
+        elif face[4] == 'r': # red
+            cube_faces[2] = face
+        elif face[4] == 'w': # white
+            cube_faces[3] = face
+        elif face[4] == 'b': # blue
+            cube_faces[4] = face
+        elif face[4] == 'o': # orange
+            cube_faces[5] = face
+
+    # kolejność do wyświetlania w cube_faces: 0,4,2,1,5,3
+
+    # cube_str = ''.join([i for r in cube_faces for s in r for i in s])
+
+    show(cube_str)
+
+    correct = input('czy kolory się zgadzają? y/n')
+    while correct == 'n':
+        show('0123y56780123g56780123r56780123w56780123b56780123o5678')
+        side, no = input('podaj kolor ścianki i numer błędnego kafelka:')
+        new_tile = input('podaj poprawny kolor (b/g/y/w/r/o)')
+        if side == 'y':
+            add = 0
+        elif side == 'g':
+            add = 9
+        elif side == 'r':
+            add = 18
+        elif side == 'w':
+            add = 27
+        elif side == 'b':
+            add = 36
+        elif side == 'o':
+            add = 45
+
+        cube_list = []
+        cube_list[:0] = cube_str
+        cube_list[add+int(no)] = new_tile
+        cube_str = ''.join(cube_list)
+        show(cube_str)
+        correct = input('czy teraz jest poprawnie? y/n')
+
+    cube_list = []
+    cube_list[:0] = cube_str
+    if cube_list[4] == 'y':  # yellow
+        x = 'U'
+    elif x == 'g':  # green
+        x = 'R'
+    elif x == 'r':  # red
+        x = 'F'
+    elif x == 'w':  # white
+        x = 'D'
+    elif x == 'b':  # blue
+        x = 'L'
+    elif x == 'o':  # orange
+        x = 'B'
+
+    cube_str = ''.join(cube_list)
+
+    print(f'solution: {sv.solve(cube_str)}')
+    cv2.waitKey(0)
 
     if cv2.waitKey(1) == 27:
         webcam.release()
