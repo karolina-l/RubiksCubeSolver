@@ -3,7 +3,6 @@ import cv2
 import color_ranges as cr
 import copy
 import twophase.solver as sv
-from enum import Enum
 
 # Capturing video through webcam
 webcam = cv2.VideoCapture(0)
@@ -93,28 +92,30 @@ while (1):
     for i in range(6):
         path = f'./Images/cube_{i}.png'
         cube_img = cv2.imread(path)
-        cv2.imshow("Rubiks Cube Solver", cube_img)
+        # cv2.imshow("Rubiks Cube Solver", cube_img)
 
-        # getting correct ROI from user
-        isFromCenter = False
-        r = cv2.selectROI("Rubiks Cube Solver", cube_img, isFromCenter)
-        roi_img = cube_img[int(r[1]):int(r[1] + r[3]), int(r[0]):int(r[0] + r[2])]
+        # selecting ROI
+        # isFromCenter = False
+        # r = cv2.selectROI("Rubiks Cube Solver", cube_img, isFromCenter)
+        # roi_img = cube_img[int(r[1]):int(r[1] + r[3]), int(r[0]):int(r[0] + r[2])]
+        roi_img = cube_img[grid_start[1]:grid_end[1], grid_start[0]:grid_end[0]]
         captured_img = f"./Images/roi_{i}.png" # będzie do usunięcia
         cv2.imwrite(captured_img, roi_img) # będzie do usunięcia
 
-        cv2.imshow("Rubiks Cube Solver", roi_img)
+        # cv2.imshow("Rubiks Cube Solver", roi_img)
         height, width, _ = roi_img.shape
+        # cv2.waitKey(0)
 
         # getting singular tiles
-        slice_ctr = 0
+        # slice_ctr = 0
         face = []
         for a in range(3):
             for b in range(3):
                 slice = roi_img[int(width / 3) * a:int(height / 3) * (a + 1),
                         int(width / 3) * b:int(height / 3) * (b + 1)]
-                captured_img = f"./Images/slice_{slice_ctr}.png" # będzie do usunięcia
-                slice_ctr += 1 # będzie do usunięcia
-                cv2.imwrite(captured_img, slice) # będzie do usunięcia
+                # captured_img = f"./Images/slice_{slice_ctr}.png" # będzie do usunięcia
+                # slice_ctr += 1 # będzie do usunięcia
+                #cv2.imwrite(captured_img, slice) # będzie do usunięcia
                 # Convert slice from RGB to HSV
                 hsvFrame = cv2.cvtColor(slice, cv2.COLOR_BGR2HSV)
 
@@ -157,12 +158,13 @@ while (1):
 
                 detected = max(col_areas, key=lambda x:x['area'])
 
-                print(f"this tile is {detected['color']}")
+                # print(f"this tile is {detected['color']}")
                 face.append(detected['color'])
 
-                cv2.destroyWindow("Rubiks Cube Solver")
-                cv2.imshow("Rubiks Cube Solver", slice)
-        cv2.waitKey(0)
+                # cv2.destroyWindow("Rubiks Cube Solver")
+                # cv2.imshow("Rubiks Cube Solver", slice)
+        # cv2.waitKey(0)
+
 
         if face[4] == 'y': # yellow
             cube_faces[0] = face
@@ -179,13 +181,13 @@ while (1):
 
     # kolejność do wyświetlania w cube_faces: 0,4,2,1,5,3
 
-    show(cube_faces)
-
     temp = [str(i) for i in range(9)]
     temp_cube = [copy.copy(temp), copy.copy(temp), copy.copy(temp), copy.copy(temp), copy.copy(temp), copy.copy(temp)]
     color_list = ['y', 'g', 'r', 'w', 'b', 'o']
     for i in range(6):
         temp_cube[i][4] = color_list[i]
+
+    show(cube_faces)
 
     correct = input('czy kolory się zgadzają? y/n')
     while correct == 'n':
