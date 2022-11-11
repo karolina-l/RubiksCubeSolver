@@ -103,19 +103,79 @@ while (1):
         cv2.imwrite(captured_img, roi_img) # będzie do usunięcia
 
         # cv2.imshow("Rubiks Cube Solver", roi_img)
-        height, width, _ = roi_img.shape
+        # height, width, _ = roi_img.shape
         # cv2.waitKey(0)
 
+        gray = cv2.cvtColor(roi_img, cv2.COLOR_BGR2GRAY)
+        # cv2.imshow("Rubiks Cube Solver", gray)
+        # cv2.waitKey(0)
+        dst = cv2.equalizeHist(gray)
+        img_gauss = cv2.GaussianBlur(dst, (5, 5), 0)  # do przeniesienia
+        thresh = 110
+        im_bw = cv2.threshold(img_gauss, thresh, 255, cv2.THRESH_BINARY)[1]
+        kernel = np.ones((5, 5), np.uint8)
+        erosion = cv2.erode(im_bw, kernel, iterations=1)
+        # cv2.imshow("Erosion", erosion)
+        # cv2.waitKey(0)
+        contours, hierarchy = cv2.findContours(erosion, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        print(len(contours))
+        coordinates = [None] * len(contours)  # *9?
+        ctr = 0
+        for j in range(len(contours)):
+            max_x = max(contours[j], key=lambda x: x[0][0])
+            max_y = max(contours[j], key=lambda x: x[0][1])
+            min_x = min(contours[j], key=lambda x: x[0][0])
+            min_y = min(contours[j], key=lambda x: x[0][1])
+            top_left = (min_x[0][0], min_y[0][1])
+            bottom_right = (max_x[0][0], max_y[0][1])
+            # check if square
+            side1 = bottom_right[0] - top_left[0]
+            side2 = bottom_right[1] - top_left[1]
+            if side1 is not 0 and side2 is not 0 and side1 / side2 > 0.6 and side1 / side2 < 1.4 \
+                    and side2 * side1 > 3000 and side2 * side1 < 30000:
+                coord = [top_left, bottom_right]
+                coordinates[ctr] = coord
+                ctr += 1
+
+        coordinates = [x for x in coordinates if x is not None]
+        coo_sorted = [None] * len(coordinates)
+        for j in range(len(coordinates)):
+            middle = ((coordinates[j][1][0] - coordinates[j][0][0]) / 2 + coordinates[j][0][0],
+                      (coordinates[j][1][1] - coordinates[j][0][1]) / 2 + coordinates[j][0][1])
+
+            if middle[0] < 107 and middle[1] < 107:
+                coo_sorted[0] = coordinates[j]
+            elif middle[0] > 107 and middle[0] < 214 and middle[1] < 107:
+                coo_sorted[1] = coordinates[j]
+            elif middle[0] > 214 and middle[1] < 107:
+                coo_sorted[2] = coordinates[j]
+            elif middle[0] < 107 and middle[1] > 107 and middle[1] < 214:
+                coo_sorted[3] = coordinates[j]
+            elif middle[0] > 107 and middle[0] < 214 and middle[1] > 107 and middle[1] < 214:
+                coo_sorted[4] = coordinates[j]
+            elif middle[0] > 214 and middle[1] > 107 and middle[1] < 214:
+                coo_sorted[5] = coordinates[j]
+            elif middle[0] < 107 and middle[1] > 214:
+                coo_sorted[6] = coordinates[j]
+            elif middle[0] > 107 and middle[0] < 214 and middle[1] > 214:
+                coo_sorted[7] = coordinates[j]
+            elif middle[0] > 214 and middle[1] > 214:
+                coo_sorted[8] = coordinates[j]
+
+        for j in range(len(coo_sorted)):
+            cube_img = cv2.rectangle(cube_img, coo_sorted[j][0], coo_sorted[j][1], color=(255, 0, 255), thickness=1)
+            # print(coordinates[j])
+            cv2.imshow('Rubiks Cube Solver', roi_img)
+            cv2.waitKey(0)
+
         # getting singular tiles
-        # slice_ctr = 0
+        slice_ctr = 0
         face = []
-        for a in range(3):
-            for b in range(3):
-                slice = roi_img[int(width / 3) * a:int(height / 3) * (a + 1),
-                        int(width / 3) * b:int(height / 3) * (b + 1)]
-                # captured_img = f"./Images/slice_{slice_ctr}.png" # będzie do usunięcia
-                # slice_ctr += 1 # będzie do usunięcia
-                #cv2.imwrite(captured_img, slice) # będzie do usunięcia
+        for a in range(9):
+                slice = roi_img[coo_sorted[a][0][1]:coo_sorted[a][1][1], coo_sorted[a][0][0]:coo_sorted[a][1][0]]
+                captured_img = f"./Images/slice_{i}_{slice_ctr}.png"  # będzie do usunięcia
+                slice_ctr += 1 # będzie do usunięcia
+                cv2.imwrite(captured_img, slice) # będzie do usunięcia
                 # Convert slice from RGB to HSV
                 hsvFrame = cv2.cvtColor(slice, cv2.COLOR_BGR2HSV)
 
@@ -164,6 +224,8 @@ while (1):
                 # cv2.destroyWindow("Rubiks Cube Solver")
                 # cv2.imshow("Rubiks Cube Solver", slice)
         # cv2.waitKey(0)
+
+        showUD(face)
 
 
         if face[4] == 'y': # yellow
