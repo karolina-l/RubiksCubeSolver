@@ -19,7 +19,7 @@ for i in range(6):
     cv2.waitKey(0)
     img_gauss = cv2.GaussianBlur(dst, (5, 5), 0) # do przeniesienia
     thresh = 110
-    im_bw = cv2.threshold(img_gauss, thresh, 255, cv2.THRESH_BINARY)[1]
+    im_bw = cv2.threshold(img_gauss, thresh, 255, cv2.THRESH_BINARY)[ 1]
     cv2.imshow("Rubiks Cube Solver", im_bw)
     cv2.waitKey(0)
     kernel = np.ones((5, 5), np.uint8)

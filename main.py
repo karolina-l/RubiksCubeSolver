@@ -46,6 +46,7 @@ def showUD(face):
         print(spacing + str(face[i:i+3]))
 
 def show(cube):
+    print("Sprawdz czy kolory są na odpowiednich kafelkach.")
     cube_duplicate = 6 * [None]
     cube_duplicate[0] = cube[0]
     cube_duplicate[1] = cube[4]
@@ -87,7 +88,7 @@ while (1):
             print(f"{captured_img} written!")
             img_ctr += 1
 
-    print("idziemy dalej")
+    # print("idziemy dalej")
     cube_faces = [None] * 6
     for i in range(6):
         path = f'./Images/cube_{i}.png'
@@ -131,7 +132,7 @@ while (1):
             # check if square
             side1 = bottom_right[0] - top_left[0]
             side2 = bottom_right[1] - top_left[1]
-            if side1 is not 0 and side2 is not 0 and side1 / side2 > 0.6 and side1 / side2 < 1.4 \
+            if side1 != 0 and side2 != 0 and side1 / side2 > 0.6 and side1 / side2 < 1.4 \
                     and side2 * side1 > 3000 and side2 * side1 < 30000:
                 coord = [top_left, bottom_right]
                 coordinates[ctr] = coord
@@ -162,11 +163,11 @@ while (1):
             elif middle[0] > 214 and middle[1] > 214:
                 coo_sorted[8] = coordinates[j]
 
-        for j in range(len(coo_sorted)):
-            cube_img = cv2.rectangle(cube_img, coo_sorted[j][0], coo_sorted[j][1], color=(255, 0, 255), thickness=1)
-            # print(coordinates[j])
-            cv2.imshow('Rubiks Cube Solver', roi_img)
-            cv2.waitKey(0)
+#         for j in range(len(coo_sorted)):
+#             cube_img = cv2.rectangle(cube_img, coo_sorted[j][0], coo_sorted[j][1], color=(255, 0, 255), thickness=1)
+#             # print(coordinates[j])
+#             cv2.imshow('Rubiks Cube Solver', roi_img)
+#             cv2.waitKey(0)
 
         # getting singular tiles
         slice_ctr = 0
@@ -225,7 +226,7 @@ while (1):
                 # cv2.imshow("Rubiks Cube Solver", slice)
         # cv2.waitKey(0)
 
-        showUD(face)
+        #showUD(face)
 
 
         if face[4] == 'y': # yellow
