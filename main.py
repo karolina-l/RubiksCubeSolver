@@ -1,303 +1,276 @@
-import numpy as np
+import PySimpleGUI as sg
 import cv2
-import color_ranges as cr
-import copy
+import numpy as np
 import twophase.solver as sv
+import cube_preparation as cp
+import copy
+import cube_show as cs
 
-# Capturing video through webcam
 webcam = cv2.VideoCapture(0)
+img_ctr = 0
 
-def DilationAndMask(color_mask, imageFrame):
-    # Morphological Transform, Dilation
-    # for each color and bitwise_and operator
-    # between imageFrame and mask determines
-    # to detect only that particular color
-    kernel = np.ones((5, 5), "uint8")
-
-    color_mask = cv2.dilate(color_mask, kernel)
-    res = cv2.bitwise_and(imageFrame, imageFrame, mask=color_mask)
-    return color_mask, res
-
-
-def Contour(color_mask, color_name, color_r, color_g, color_b, frame):
-    contours, hierarchy = cv2.findContours(color_mask,
-                                           cv2.RETR_TREE,
-                                           cv2.CHAIN_APPROX_SIMPLE)
-    areas = list()
-
-    for pic, contour in enumerate(contours):
-        area = cv2.contourArea(contour)
-        if area > 3000:
-            areas.append(area)
-            x, y, w, h = cv2.boundingRect(contour)
-            frame = cv2.rectangle(frame, (x, y),
-                                       (x + w, y + h),
-                                       (color_b, color_g, color_r), 2)
-
-            cv2.putText(frame, f"{color_name} Color", (x, y),
-                        cv2.FONT_HERSHEY_SIMPLEX, 1.0,
-                        (color_b, color_g, color_r))
-    return color_name, sum(areas)
+def showUD(face, ud_sig):
+    tile_ctr = 0
+    for j in range(3):
+        for i in range(3):
+            if face[tile_ctr] == 'r':
+                window[f'{ud_sig}{j}{i}'].update(button_color='red')
+            elif face[tile_ctr] == 'g':
+                window[f'{ud_sig}{j}{i}'].update(button_color='green')
+            elif face[tile_ctr] == 'b':
+                window[f'{ud_sig}{j}{i}'].update(button_color='blue')
+            elif face[tile_ctr] == 'o':
+                window[f'{ud_sig}{j}{i}'].update(button_color='orange')
+            elif face[tile_ctr] == 'w':
+                window[f'{ud_sig}{j}{i}'].update(button_color='white')
+            elif face[tile_ctr] == 'y':
+                window[f'{ud_sig}{j}{i}'].update(button_color='yellow')
+            tile_ctr += 1
 
 
-def showUD(face):
-    spacing = 18 * ' '
-    for i in range(0,7,3):
-        print(spacing + str(face[i:i+3]))
+def flatten(l):
+    return [item for sublist in l for item in sublist]
 
-def show(cube):
-    print("Sprawdz czy kolory są na odpowiednich kafelkach.")
-    cube_duplicate = 6 * [None]
-    cube_duplicate[0] = cube[0]
-    cube_duplicate[1] = cube[4]
-    cube_duplicate[2] = cube[2]
-    cube_duplicate[3] = cube[1]
-    cube_duplicate[4] = cube[5]
-    cube_duplicate[5] = cube[3]
-    showUD(cube_duplicate[0])
+
+def showC(cube):
+    rows = [None] * 3
+    k = 0
     for row in range(0,7,3):
+        tile_ctr = 0
         long_row = []
         for side in range(1,5):
-            long_row.append(cube_duplicate[side][row:row+3])
-        print(long_row)
-    showUD(cube_duplicate[5])
+            long_row.append(cube[side][row:row+3])
+        long_row = flatten(long_row)
+        rows[k] = long_row
+        k += 1
+    for j in range(3):
+        tile_ctr = 0
+        for i in range(12):
+            if rows[j][tile_ctr] == 'r':
+                window[f'C{j}{i}'].update(button_color='red')
+            elif rows[j][tile_ctr] == 'g':
+                window[f'C{j}{i}'].update(button_color='green')
+            elif rows[j][tile_ctr] == 'b':
+                window[f'C{j}{i}'].update(button_color='blue')
+            elif rows[j][tile_ctr] == 'o':
+                window[f'C{j}{i}'].update(button_color='orange')
+            elif rows[j][tile_ctr] == 'w':
+                window[f'C{j}{i}'].update(button_color='white')
+            elif rows[j][tile_ctr] == 'y':
+                window[f'C{j}{i}'].update(button_color='yellow')
+            tile_ctr += 1
 
 
-img_ctr = 0
-grid_start = (160, 80)
-grid_end = (480, 400)
-grid_color = (255, 0, 255)
-grid_thickness = 2
+def PopupDropDown(title, text, values):
+    window = sg.Window(title,
+        [[sg.Text(text)],
+        [sg.DropDown(values, key='-DROP-')],
+        [sg.OK()]
+    ])
+    event, values = window.read()
+    window.close()
+    return None if event != 'OK' else values['-DROP-']
 
-# Start a while loop
-while (1):
+def whatPosition(number):
+    if number.startswith('0'):
+        if number.endswith('11') or number.endswith('8') or number.endswith('5') or number.endswith('2'):
+            i = 2
+        elif number.endswith('10') or number.endswith('7') or number.endswith('4') or (number.endswith('1') and len(number) <3):
+            i = 1
+        elif number.endswith('9') or number.endswith('6') or number.endswith('3') or (number.endswith('0') and len(number) <3):
+            i = 0
+    elif number.startswith('1'):
+        if number.endswith('11') or number.endswith('8') or number.endswith('5') or number.endswith('2'):
+            i = 5
+        elif number.endswith('10') or number.endswith('7') or number.endswith('4') or (number.endswith('1') and len(number) <3):
+            i = 4
+        elif number.endswith('9') or number.endswith('6') or number.endswith('3') or (number.endswith('0') and len(number) <3):
+            i = 3
+    elif number.startswith('2'):
+        if number.endswith('11') or number.endswith('8') or number.endswith('5') or number.endswith('2'):
+            i = 8
+        elif number.endswith('10') or number.endswith('7') or number.endswith('4') or (number.endswith('1') and len(number) <3):
+            i = 7
+        elif number.endswith('9') or number.endswith('6') or number.endswith('3') or (number.endswith('0') and len(number) < 3):
+            i = 6
+    return i
 
-    # Capturing 6 images from camera
-    while (img_ctr < 6):
-        ret, imageFrame = webcam.read()
-        img_cpy = copy.copy(imageFrame)
-        img_cpy = cv2.rectangle(img_cpy, grid_start, grid_end, grid_color, grid_thickness)
-        if not ret:
-            print("failed to grab frame")
-            break
-        cv2.imshow("Rubiks Cube Solver", img_cpy)
-        action = cv2.waitKey(1)
-        if action%256 == 32:
-            captured_img = f"./Images/cube_{img_ctr}.png"
-            cv2.imwrite(captured_img, imageFrame)
-            print(f"{captured_img} written!")
-            img_ctr += 1
+def getPositionToChange(event, color):
+    i = 99
+    j = 99
+    if event.endswith('00'):
+        i = 0
+    elif event.endswith('01'):
+        i = 1
+    elif event.endswith('02'):
+        i = 2
+    elif event.endswith('10'):
+        i = 3
+    elif event.endswith('11'):
+        i = 4
+    elif event.endswith('12'):
+        i = 5
+    elif event.endswith('20'):
+        i = 6
+    elif event.endswith('21'):
+        i = 7
+    elif event.endswith('22'):
+        i = 8
 
-    # print("idziemy dalej")
-    cube_faces = [None] * 6
-    for i in range(6):
-        path = f'./Images/cube_{i}.png'
-        cube_img = cv2.imread(path)
-        # cv2.imshow("Rubiks Cube Solver", cube_img)
+    if event.startswith('U'):
+        j = 0
+    elif event.startswith('D'):
+        j = 5
+    elif event.startswith('C'):
+        number = event[1:]
+        if number.endswith('9') or len(number) > 2:
+            j = 4
+            i = whatPosition(number)
+        elif number.endswith('8') or number.endswith('7') or number.endswith('6'):
+            j = 3
+            i = whatPosition(number)
+        elif number.endswith('5') or number.endswith('4') or number.endswith('3'):
+            j = 2
+            i = whatPosition(number)
+        elif (number.endswith('2') or number.endswith('1') or number.endswith('0')) and len(number) < 3:
+            j = 1
+            i = whatPosition(number)
 
-        # selecting ROI
-        # isFromCenter = False
-        # r = cv2.selectROI("Rubiks Cube Solver", cube_img, isFromCenter)
-        # roi_img = cube_img[int(r[1]):int(r[1] + r[3]), int(r[0]):int(r[0] + r[2])]
-        roi_img = cube_img[grid_start[1]:grid_end[1], grid_start[0]:grid_end[0]]
-        captured_img = f"./Images/roi_{i}.png" # będzie do usunięcia
-        cv2.imwrite(captured_img, roi_img) # będzie do usunięcia
-
-        # cv2.imshow("Rubiks Cube Solver", roi_img)
-        # height, width, _ = roi_img.shape
-        # cv2.waitKey(0)
-
-        gray = cv2.cvtColor(roi_img, cv2.COLOR_BGR2GRAY)
-        # cv2.imshow("Rubiks Cube Solver", gray)
-        # cv2.waitKey(0)
-        dst = cv2.equalizeHist(gray)
-        img_gauss = cv2.GaussianBlur(dst, (5, 5), 0)  # do przeniesienia
-        thresh = 110
-        im_bw = cv2.threshold(img_gauss, thresh, 255, cv2.THRESH_BINARY)[1]
-        kernel = np.ones((5, 5), np.uint8)
-        erosion = cv2.erode(im_bw, kernel, iterations=1)
-        # cv2.imshow("Erosion", erosion)
-        # cv2.waitKey(0)
-        contours, hierarchy = cv2.findContours(erosion, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        print(len(contours))
-        coordinates = [None] * len(contours)  # *9?
-        ctr = 0
-        for j in range(len(contours)):
-            max_x = max(contours[j], key=lambda x: x[0][0])
-            max_y = max(contours[j], key=lambda x: x[0][1])
-            min_x = min(contours[j], key=lambda x: x[0][0])
-            min_y = min(contours[j], key=lambda x: x[0][1])
-            top_left = (min_x[0][0], min_y[0][1])
-            bottom_right = (max_x[0][0], max_y[0][1])
-            # check if square
-            side1 = bottom_right[0] - top_left[0]
-            side2 = bottom_right[1] - top_left[1]
-            if side1 != 0 and side2 != 0 and side1 / side2 > 0.6 and side1 / side2 < 1.4 \
-                    and side2 * side1 > 3000 and side2 * side1 < 30000:
-                coord = [top_left, bottom_right]
-                coordinates[ctr] = coord
-                ctr += 1
-
-        coordinates = [x for x in coordinates if x is not None]
-        coo_sorted = [None] * len(coordinates)
-        for j in range(len(coordinates)):
-            middle = ((coordinates[j][1][0] - coordinates[j][0][0]) / 2 + coordinates[j][0][0],
-                      (coordinates[j][1][1] - coordinates[j][0][1]) / 2 + coordinates[j][0][1])
-
-            if middle[0] < 107 and middle[1] < 107:
-                coo_sorted[0] = coordinates[j]
-            elif middle[0] > 107 and middle[0] < 214 and middle[1] < 107:
-                coo_sorted[1] = coordinates[j]
-            elif middle[0] > 214 and middle[1] < 107:
-                coo_sorted[2] = coordinates[j]
-            elif middle[0] < 107 and middle[1] > 107 and middle[1] < 214:
-                coo_sorted[3] = coordinates[j]
-            elif middle[0] > 107 and middle[0] < 214 and middle[1] > 107 and middle[1] < 214:
-                coo_sorted[4] = coordinates[j]
-            elif middle[0] > 214 and middle[1] > 107 and middle[1] < 214:
-                coo_sorted[5] = coordinates[j]
-            elif middle[0] < 107 and middle[1] > 214:
-                coo_sorted[6] = coordinates[j]
-            elif middle[0] > 107 and middle[0] < 214 and middle[1] > 214:
-                coo_sorted[7] = coordinates[j]
-            elif middle[0] > 214 and middle[1] > 214:
-                coo_sorted[8] = coordinates[j]
-
-#         for j in range(len(coo_sorted)):
-#             cube_img = cv2.rectangle(cube_img, coo_sorted[j][0], coo_sorted[j][1], color=(255, 0, 255), thickness=1)
-#             # print(coordinates[j])
-#             cv2.imshow('Rubiks Cube Solver', roi_img)
-#             cv2.waitKey(0)
-
-        # getting singular tiles
-        slice_ctr = 0
-        face = []
-        for a in range(9):
-                slice = roi_img[coo_sorted[a][0][1]:coo_sorted[a][1][1], coo_sorted[a][0][0]:coo_sorted[a][1][0]]
-                captured_img = f"./Images/slice_{i}_{slice_ctr}.png"  # będzie do usunięcia
-                slice_ctr += 1 # będzie do usunięcia
-                cv2.imwrite(captured_img, slice) # będzie do usunięcia
-                # Convert slice from RGB to HSV
-                hsvFrame = cv2.cvtColor(slice, cv2.COLOR_BGR2HSV)
-
-                # define masks
-                red_mask_1 = cv2.inRange(hsvFrame, cr.red_lower_1, cr.red_upper_1)
-                red_mask_2 = cv2.inRange(hsvFrame, cr.red_lower_2, cr.red_upper_2)
-                green_mask = cv2.inRange(hsvFrame, cr.green_lower, cr.green_upper)
-                blue_mask = cv2.inRange(hsvFrame, cr.blue_lower, cr.blue_upper)
-                yellow_mask = cv2.inRange(hsvFrame, cr.yellow_lower, cr.yellow_upper)
-                white_mask = cv2.inRange(hsvFrame, cr.white_lower, cr.white_upper)
-                orange_mask = cv2.inRange(hsvFrame, cr.orange_lower, cr.orange_upper)
-
-                # Morphological Transform, Dilation
-                red_mask_1, res_red = DilationAndMask(red_mask_1, slice)
-                red_mask_2, res_red = DilationAndMask(red_mask_2, slice)
-                green_mask, res_green = DilationAndMask(green_mask, slice)
-                blue_mask, res_blue = DilationAndMask(blue_mask, slice)
-                yellow_mask, res_yellow = DilationAndMask(yellow_mask, slice)
-                white_mask, res_white = DilationAndMask(white_mask, slice)
-                orange_mask, res_orange = DilationAndMask(orange_mask, slice)
-
-                # Creating contours to track colors
-                r1_col, r1_area = Contour(red_mask_1, "r", 255, 0, 0, slice) # red F
-                r2_col, r2_area = Contour(red_mask_2, "r", 255, 0, 0, slice) # red F
-                g_col, g_area = Contour(green_mask, "g", 0, 255, 0, slice) # green R
-                b_col, b_area = Contour(blue_mask, "b", 0, 0, 255, slice) # blue L
-                y_col, y_area = Contour(yellow_mask, "y", 255, 255, 0, slice) # yellow U
-                w_col, w_area = Contour(white_mask, "w", 255, 255, 255, slice) # white D
-                o_col, o_area = Contour(orange_mask, "o", 255, 128, 0, slice) # orange B
-
-                r_col = r1_col
-                r_area = r1_area + r2_area
-                col_areas = list()
-                col_areas.append({'color': r_col, 'area': r_area})
-                col_areas.append({'color': g_col, 'area': g_area})
-                col_areas.append({'color': b_col, 'area': b_area})
-                col_areas.append({'color': y_col, 'area': y_area})
-                col_areas.append({'color': w_col, 'area': w_area})
-                col_areas.append({'color': o_col, 'area': o_area})
-
-                detected = max(col_areas, key=lambda x:x['area'])
-
-                # print(f"this tile is {detected['color']}")
-                face.append(detected['color'])
-
-                # cv2.destroyWindow("Rubiks Cube Solver")
-                # cv2.imshow("Rubiks Cube Solver", slice)
-        # cv2.waitKey(0)
-
-        #showUD(face)
+    if color == 'red':
+        color_sym = 'r'
+    elif color == 'green':
+        color_sym = 'g'
+    elif color == 'blue':
+        color_sym = 'b'
+    elif color == 'orange':
+        color_sym = 'o'
+    elif color == 'white':
+        color_sym = 'w'
+    elif color == 'yellow':
+        color_sym = 'y'
+    return j, i, color_sym
 
 
-        if face[4] == 'y': # yellow
-            cube_faces[0] = face
-        elif face[4] == 'g': # green
-            cube_faces[1] = face
-        elif face[4] == 'r': # red
-            cube_faces[2] = face
-        elif face[4] == 'w': # white
-            cube_faces[3] = face
-        elif face[4] == 'b': # blue
-            cube_faces[4] = face
-        elif face[4] == 'o': # orange
-            cube_faces[5] = face
+# ----------- Create the 4 layouts this Window will display -----------
+layout1 = [[sg.Text("Let's get started", size=(100, 1), justification='center', font='Helvetica 20')],
+           [sg.Push(), sg.Button("Take photos"), sg.Push()]]
 
-    # kolejność do wyświetlania w cube_faces: 0,4,2,1,5,3
+text_l2 = "Place a cube in an area bounded by a pink rectangle. The order of walls is not important, but you " \
+               "shall remember that red wall is the front one and yellow wall is the top one. You can tell " \
+               "the color of the wall by its center element. "
+layout2 = [[sg.Text(text_l2, size=(85, None), font='Helvetica 15')],
+           [sg.Image(key='-IMG-'),sg.Push(), sg.Text(f"Images to take: {6-img_ctr}", size=(20, 1), key='-CTR-', font='Helvetica 15'), sg.Push()],
+           [sg.Button("Photo"), sg.Button("Done")]]
 
-    temp = [str(i) for i in range(9)]
-    temp_cube = [copy.copy(temp), copy.copy(temp), copy.copy(temp), copy.copy(temp), copy.copy(temp), copy.copy(temp)]
-    color_list = ['y', 'g', 'r', 'w', 'b', 'o']
-    for i in range(6):
-        temp_cube[i][4] = color_list[i]
+buttonsU = [[sg.Button(' ', size=3, pad=(0,0), key=f'U{j}{i}', button_color=('black', 'black')) for i in range(3)] for j in range(3)]
+buttonsD = [[sg.Button(' ', size=3, pad=(0,0), key=f'D{j}{i}', button_color=('black', 'black')) for i in range(3)] for j in range(3)]
+buttonsC = [[sg.Button(' ', size=3, pad=(0,0), key=f'C{j}{i}', button_color=('black', 'black')) for i in range(12)] for j in range(3)]
+layout3 = [[sg.Text("Check colors. To correct a mistake, click the tile and choose new color.", size=(68, 1), font='Helvetica 15')],
+            [sg.Text('', size=(85, 1), key='-ILE-', font='Helvetica 15')],
+            [sg.Column(buttonsU, key='u1', pad=(0,0))],
+            [sg.Column(buttonsC, key='c1', pad=(0,0))],
+            [sg.Column(buttonsD, key='d1', pad=(0,0))],
+            [sg.Button("All colors are correct")]]
 
-    show(cube_faces)
+layout4 = [[sg.Text("Your solution", size=(100, 1), justification='center', font='Helvetica 20')],
+           [sg.Text('', size=(100,2), justification='center', key='-SOL-', font='Helvetica 17')]]
 
-    correct = input('czy kolory się zgadzają? y/n')
-    while correct == 'n':
-        show(temp_cube)
-        side, no = input('podaj kolor ścianki i numer błędnego kafelka:')
-        new_tile = input('podaj poprawny kolor (b/g/y/w/r/o)')
-        if side == 'y':
-            cube_faces[0][int(no)] = new_tile
-        elif side == 'g':
-            cube_faces[1][int(no)] = new_tile
-        elif side == 'r':
-            cube_faces[2][int(no)] = new_tile
-        elif side == 'w':
-            cube_faces[3][int(no)] = new_tile
-        elif side == 'b':
-            cube_faces[4][int(no)] = new_tile
-        elif side == 'o':
-            cube_faces[5][int(no)] = new_tile
+# ----------- Create actual layout using Columns and a row of Buttons
+layout = [[sg.Column(layout1, key='-COL1-'), sg.Column(layout2, visible=False, key='-COL2-'),
+           sg.Column(layout3, visible=False, key='-COL3-'),  sg.Column(layout4, visible=False, key='-COL4-')],
+          [sg.Button('Try Again'), sg.Button('Exit')]]
 
-        show(cube_faces)
-        correct = input('czy teraz jest poprawnie? y/n')
+window = sg.Window('Swapping the contents of a window', layout, size=(1000, 650))
 
-    for i in range(6):
-        for j in range(9):
-            if cube_faces[i][j] == 'y':  # yellow
-                cube_faces[i][j] = 'U'
-            elif cube_faces[i][j] == 'g':  # green
-                cube_faces[i][j] = 'R'
-            elif cube_faces[i][j] == 'r':  # red
-                cube_faces[i][j] = 'F'
-            elif cube_faces[i][j] == 'w':  # white
-                cube_faces[i][j] = 'D'
-            elif cube_faces[i][j] == 'b':  # blue
-                cube_faces[i][j] = 'L'
-            elif cube_faces[i][j] == 'o':  # orange
-                cube_faces[i][j] = 'B'
-
-    cube_aos = [None] * 6
-    for i in range(6):
-        cube_aos[i] = ''.join(cube_faces[i])
-
-    cube_str = ''.join(cube_aos)
-
-    print(f'solution: {sv.solve(cube_str)}')
-    cv2.waitKey(0)
-
-    if cv2.waitKey(1) == 27:
-        webcam.release()
-        cv2.destroyAllWindows()
+layout = 1  # The currently visible layout
+recording = False
+while True:
+    event, values = window.read(timeout=20)
+    if event in (sg.WIN_CLOSED, 'Exit'):
         break
+    if event == 'Try Again':
+        window[f'-COL{layout}-'].update(visible=False)
+        layout = 1
+        recording = False
+        img_ctr = 0
+        window[f'-COL{layout}-'].update(visible=True)
+
+
+    elif event == 'Take photos':
+        window[f'-COL{layout}-'].update(visible=False)
+        layout = 2
+        window[f'-COL{layout}-'].update(visible=True)
+        window['-CTR-'].update(f"Images to take: {6 - img_ctr}")
+        recording = True
+
+
+    elif event == 'Done' and img_ctr >= 6:
+        recording = False
+        img = np.full((480, 640), 255)
+        imgbytes = cv2.imencode('.png', img)[1].tobytes()
+        window['-IMG-'].update(data=imgbytes)
+
+        # ----------cube solving part-----------
+        cube_faces = [None] * 6
+        for i in range(6):
+            coo_sorted, roi_img = cp.getCoordsSortedAndROIimg(i)
+            face = cp.sliceService(coo_sorted, roi_img)
+            cp.faceSorting(cube_faces, face)
+        cube_order = cs.cubeOrder(cube_faces)
+        co_flat = flatten(cube_order)
+        co_str = ''.join(co_flat)
+        info = cp.checkIfNine(co_str)
+        # --------------------------------------
+
+        window[f'-COL{layout}-'].update(visible=False)
+        layout = 3
+        window['-ILE-'].update(info)
+        showUD(cube_order[0], 'U')
+        showC(cube_order)
+        showUD(cube_order[5], 'D')
+        window[f'-COL{layout}-'].update(visible=True)
+
+
+    elif event == 'All colors are correct':
+        # ----------cube solving part-----------
+        cube_str = cp.cubeFormatConversion(cube_faces)
+        solution = sv.solve(cube_str)
+        solution = cp.toSingmatserNotation(solution)
+        window['-SOL-'].update(solution)
+        # --------------------------------------
+
+        window[f'-COL{layout}-'].update(visible=False)
+        layout = 4
+        window[f'-COL{layout}-'].update(visible=True)
+
+
+    elif event == 'Photo' and img_ctr < 6:
+        ret, frame = webcam.read()
+        cv2.imwrite(f'./Images/cube_{img_ctr}.png', frame)
+        img_ctr += 1
+        window['-CTR-'].update(f"Images to take: {6-img_ctr}")
+
+
+    elif (event.startswith('U') or event.startswith('C') or event.startswith('D')) and layout == 3:
+        values = ["red", "white", "yellow", "green", "blue", "orange"]
+        color = PopupDropDown('Color correction', 'Please select correct color and confirm choice', values)
+        window[event].update(button_color=color)
+        j, i, color_sym = getPositionToChange(event, color)
+        cube_order[j][i] = color_sym
+        co_flat = flatten(cube_order)
+        co_str = ''.join(co_flat)
+        info = cp.checkIfNine(co_str)
+        window['-ILE-'].update(info)
+
+    if recording:
+        grid_start = (160, 80)
+        grid_end = (480, 400)
+        grid_color = (255, 0, 255)
+        grid_thickness = 2
+
+        ret, frame = webcam.read()
+        img_cpy = copy.copy(frame)
+        img_cpy = cv2.rectangle(img_cpy, grid_start, grid_end, grid_color, grid_thickness)
+        imgbytes = cv2.imencode('.png', img_cpy)[1].tobytes()
+        window['-IMG-'].update(data=imgbytes)
+window.close()
