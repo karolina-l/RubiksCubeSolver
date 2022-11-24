@@ -9,58 +9,6 @@ import cube_show as cs
 webcam = cv2.VideoCapture(0)
 img_ctr = 0
 
-def showUD(face, ud_sig):
-    tile_ctr = 0
-    for j in range(3):
-        for i in range(3):
-            if face[tile_ctr] == 'r':
-                window[f'{ud_sig}{j}{i}'].update(button_color='red')
-            elif face[tile_ctr] == 'g':
-                window[f'{ud_sig}{j}{i}'].update(button_color='green')
-            elif face[tile_ctr] == 'b':
-                window[f'{ud_sig}{j}{i}'].update(button_color='blue')
-            elif face[tile_ctr] == 'o':
-                window[f'{ud_sig}{j}{i}'].update(button_color='orange')
-            elif face[tile_ctr] == 'w':
-                window[f'{ud_sig}{j}{i}'].update(button_color='white')
-            elif face[tile_ctr] == 'y':
-                window[f'{ud_sig}{j}{i}'].update(button_color='yellow')
-            tile_ctr += 1
-
-
-def flatten(l):
-    return [item for sublist in l for item in sublist]
-
-
-def showC(cube):
-    rows = [None] * 3
-    k = 0
-    for row in range(0,7,3):
-        tile_ctr = 0
-        long_row = []
-        for side in range(1,5):
-            long_row.append(cube[side][row:row+3])
-        long_row = flatten(long_row)
-        rows[k] = long_row
-        k += 1
-    for j in range(3):
-        tile_ctr = 0
-        for i in range(12):
-            if rows[j][tile_ctr] == 'r':
-                window[f'C{j}{i}'].update(button_color='red')
-            elif rows[j][tile_ctr] == 'g':
-                window[f'C{j}{i}'].update(button_color='green')
-            elif rows[j][tile_ctr] == 'b':
-                window[f'C{j}{i}'].update(button_color='blue')
-            elif rows[j][tile_ctr] == 'o':
-                window[f'C{j}{i}'].update(button_color='orange')
-            elif rows[j][tile_ctr] == 'w':
-                window[f'C{j}{i}'].update(button_color='white')
-            elif rows[j][tile_ctr] == 'y':
-                window[f'C{j}{i}'].update(button_color='yellow')
-            tile_ctr += 1
-
-
 def PopupDropDown(title, text, values):
     window = sg.Window(title,
         [[sg.Text(text)],
@@ -217,7 +165,7 @@ while True:
             face = cp.sliceService(coo_sorted, roi_img)
             cp.faceSorting(cube_faces, face)
         cube_order = cs.cubeOrder(cube_faces)
-        co_flat = flatten(cube_order)
+        co_flat = cs.flatten(cube_order)
         co_str = ''.join(co_flat)
         info = cp.checkIfNine(co_str)
         # --------------------------------------
@@ -225,9 +173,9 @@ while True:
         window[f'-COL{layout}-'].update(visible=False)
         layout = 3
         window['-ILE-'].update(info)
-        showUD(cube_order[0], 'U')
-        showC(cube_order)
-        showUD(cube_order[5], 'D')
+        cs.showUD(cube_order[0], 'U', window)
+        cs.showC(cube_order, window)
+        cs.showUD(cube_order[5], 'D', window)
         window[f'-COL{layout}-'].update(visible=True)
 
 
@@ -257,7 +205,7 @@ while True:
         window[event].update(button_color=color)
         j, i, color_sym = getPositionToChange(event, color)
         cube_order[j][i] = color_sym
-        co_flat = flatten(cube_order)
+        co_flat = cs.flatten(cube_order)
         co_str = ''.join(co_flat)
         info = cp.checkIfNine(co_str)
         window['-ILE-'].update(info)
